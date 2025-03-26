@@ -18,6 +18,7 @@ class _Vertex:
         self.item = item
         self.neighbours = neighbours
 
+
 class Graph:
     """A graph.
 
@@ -27,7 +28,7 @@ class Graph:
     # Private Instance Attributes:
     #     - _vertices: A collection of the vertices contained in this graph.
     #                  Maps item to _Vertex instance.
-    vertices: dict[Any, _Vertex]
+    vertices: dict[Any, _Vertex]  # TODO: private attribute <_vertices>
 
     def __init__(self) -> None:
         """Initialize an empty graph (no vertices or edges)."""
@@ -84,7 +85,7 @@ class Paper:
         self.paper_id = paper_id
 
 
-def process_row(row) -> Paper:
+def process_row(row: list) -> Paper:
     abstract = row[0]
 
     s = row[1].strip("[]").split(', ')
@@ -105,27 +106,21 @@ def process_row(row) -> Paper:
     return Paper(abstract, authors, n_citations, references, title, venue, year, paper_id)
 
 
-csv_path = '../dblp-v10-2.csv'
+def load_research_graph(csv_path: str = 'dblp-v10-2.csv') -> Graph():
+    graph = Graph()
 
-graph = Graph()
+    with open(csv_path, 'r') as file:
+        reader = csv.reader(file)
+        header = next(reader)
+        print("Header:", header)
+        for row in reader:  # TODO: <i> needed?
+            graph.add_vertex(process_row(row))
 
-lst = []
-with open(csv_path, 'r') as file:
-    reader = csv.reader(file)
-    header = next(reader)
-    print("Header:", header)
-    for i, row in enumerate(reader):
-        graph.add_vertex(process_row(row))
+    # Adding edges
+    for paper in graph.vertices.values():
+        p_id = paper.item.paper_id
+        for x in paper.item.references:
+            if x in graph.vertices:
+                graph.add_edge(x, p_id)
 
-# Adding edges
-for paper in graph.vertices:
-    p_id = graph.vertices[paper].item.paper_id
-    for x in graph.vertices[paper].item.references:
-        if x in graph.vertices:
-            graph.add_edge(x, p_id)
-
-# Testing if edges work (THEY DO!)
-print(graph.vertices["b24ba5c0-fee8-4a3e-9330-17f6564856cd"].item.title)
-print("Cited by: ")
-for x in graph.vertices["b24ba5c0-fee8-4a3e-9330-17f6564856cd"].neighbours:
-    print(x.item.title)
+    return graph
