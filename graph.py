@@ -9,14 +9,18 @@ class _Vertex:
     Instance Attributes:
         - item: The data stored in this vertex.
         - neighbours: The vertices that are adjacent to this vertex.
+        - level: The nesting level of this vertex in the graph (1 if it was found using direct search,
+                2 if it is a neighbour of direct search).
     """
     item: Any
     neighbours: set[_Vertex]
+    level: int
 
     def __init__(self, item: Any, neighbours: set[_Vertex]) -> None:
         """Initialize a new vertex with the given item and neighbours."""
         self.item = item
         self.neighbours = neighbours
+        self.level = 2
 
 
 class Graph:
@@ -72,6 +76,7 @@ class Paper:
     venue: str
     year: int
     paper_id: str
+    level: int
 
     def __init__(self, abstract: str, authors: list[str],
                  n_citation: int, references: list[str], title: str, venue: str, year: int, paper_id: str) -> None:
@@ -88,13 +93,13 @@ class Paper:
 def process_row(row: list) -> Paper:
     abstract = row[0]
 
-    s = row[1].strip("[]").split(', ')
-    authors = [item.strip("'\"") for item in s]
+    authors_pre_split = row[1].strip("[]").split(', ')
+    authors = [item.strip("'\"") for item in authors_pre_split]
 
     n_citations = int(row[2])
 
-    r = row[3].strip("[]").split(', ')
-    references = [item.strip("'\"") for item in r]
+    references_pre_split = row[3].strip("[]").split(', ')
+    references = [item.strip("'\"") for item in references_pre_split]
 
     title = row[4]
 
@@ -106,14 +111,14 @@ def process_row(row: list) -> Paper:
     return Paper(abstract, authors, n_citations, references, title, venue, year, paper_id)
 
 
-def load_research_graph(csv_path: str = 'dblp-v10-2.csv') -> Graph():
+def load_research_graph(csv_path: str = '../dblp-v10-2.csv') -> Graph:
     graph = Graph()
 
     with open(csv_path, 'r') as file:
         reader = csv.reader(file)
         header = next(reader)
         print("Header:", header)
-        for row in reader:  # TODO: <i> needed?
+        for row in reader:
             graph.add_vertex(process_row(row))
 
     # Adding edges
@@ -121,6 +126,6 @@ def load_research_graph(csv_path: str = 'dblp-v10-2.csv') -> Graph():
         p_id = paper.item.paper_id
         for x in paper.item.references:
             if x in graph.vertices:
-                graph.add_edge(x, p_id)
+                graph.add_edge(p_id, x)
 
     return graph
