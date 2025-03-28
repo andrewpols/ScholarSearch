@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Loading..."</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap" rel="stylesheet">
+        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+            type="module">
+        </script>
+        <style>
+            #loading{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                height: 100vh;
+                gap: 30px
+            }
+
+            h1{
+                font-family: "Roboto Slab",sans-serif;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="loading">
+            <dotlottie-player
+              src="https://lottie.host/99e603a0-e87f-4fb3-86f2-8ec2a9067949/QT39WWUiGT.lottie"
+              background="transparent"
+              speed="1"
+              style="width: 420px; height: 300px"
+              loop
+              autoplay
+            ></dotlottie-player>
+            <h1>Fetching Your Paper...</h1>
+
+        </div>
+    </body>
+</html>

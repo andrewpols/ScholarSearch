@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any
+import requests
 import csv
 
 
@@ -77,6 +78,7 @@ class Paper:
     year: int
     paper_id: str
     level: int
+    url: str
 
     def __init__(self, abstract: str, authors: list[str],
                  n_citation: int, references: list[str], title: str, venue: str, year: int, paper_id: str) -> None:
@@ -88,6 +90,25 @@ class Paper:
         self.venue = venue
         self.year = year
         self.paper_id = paper_id
+        self.url = "https://www.google.com/404"
+
+
+# def get_doi(title, author):
+#     base_url = "https://api.crossref.org/works"
+#     params = {
+#         "query.title": title,
+#         "query.author": author
+#     }
+#     response = requests.get(base_url, params=params)
+#
+#     if response.status_code == 200:
+#         data = response.json()
+#         items = data.get("message", {}).get("items", [])
+#         if items:
+#             url = items[0].get("URL")
+#             print(title + " : " + url)
+#             return url  # Returns the first DOI found
+#     return None
 
 
 def process_row(row: list) -> Paper:
