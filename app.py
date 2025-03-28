@@ -7,6 +7,8 @@ app = Flask(__name__)
 mega_graph = Graph()
 corpus = []
 bm25 = None
+
+
 def startup():
     csv_path = '../dblp-v10-2.csv'
     global mega_graph
@@ -41,12 +43,13 @@ def home():
     global mega_graph
     global corpus
     global bm25
-    query = "game design"
+    query = "clinical trials"
     query_graph = return_query(mega_graph, query, bm25, corpus)
     nodes_data = [{"id": query_graph.vertices[key].item.paper_id,
                    "title": query_graph.vertices[key].item.title,
                    "weight": calculate_weight(len(query_graph.vertices[key].neighbours)),
-                   "group": query_graph.vertices[key].level}
+                   "group": query_graph.vertices[key].level,
+                   "authors": query_graph.vertices[key].item.authors}
                   for key in query_graph.vertices]
     links_data = []
     for paper in query_graph.vertices:
@@ -57,6 +60,11 @@ def home():
                                    "target": query_graph.vertices[paper].item.paper_id})
 
     return render_template('index.html', nodesData=nodes_data, linksData=links_data, query=query)
+
+
+@app.route('/loading')
+def loading():
+    return render_template("loading.html")
 
 
 if __name__ == '__main__':

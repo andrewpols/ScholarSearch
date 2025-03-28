@@ -1,6 +1,9 @@
+import pprint
+
 from rank_bm25 import BM25Okapi
 from graph import Graph, load_research_graph
 import numpy as np
+
 
 class CustomBM25Okapi(BM25Okapi):
     def get_top_n_paper_score(self, query: list[str], documents: list[tuple[str, str]], n=200) -> list[list]:
@@ -42,7 +45,8 @@ def get_paper_by_title(graph, title):
 
 
 def truncate_title(title, max_length=50):
-    return title if len(title) <= max_length else title[:max_length-3] + "..."
+    return title if len(title) <= max_length else title[:max_length - 3] + "..."
+
 
 def set_up_corpus(g: Graph):
     corpus = get_corpus(graph)
@@ -50,22 +54,27 @@ def set_up_corpus(g: Graph):
     bm25 = CustomBM25Okapi(tokenized_corpus)
     return corpus, bm25
 
+
 def build_query_graph(mega_graph: Graph, weighted_papers: list) -> Graph:
     query_graph = Graph()
+    pprint.pprint(weighted_papers)
     for paper in weighted_papers:
         query_graph.add_vertex(mega_graph.vertices[paper[0]].item)
         query_graph.vertices[mega_graph.vertices[paper[0]].item.paper_id].level = 1
 
     values = list(query_graph.vertices.values())
     for paper in values:
+        # if paper.item.url == "https://www.google.com/404":
+            # paper.item.url = get_doi(paper.item.title, paper.item.authors)
         p_id = paper.item.paper_id
-        for x in paper.item.references:
+        for x in paper.item.references[:10]:
             if x in mega_graph.vertices:
-                query_graph.add_vertex(mega_graph.vertices[x].item)
+                x_paper = mega_graph.vertices[x]
+                # if x_paper.item.url == "https://www.google.com/404":
+                    # x_paper.item.url = get_doi(x_paper.item.title, x_paper.item.authors)
+                query_graph.add_vertex(x_paper.item)
             if x in query_graph.vertices:
                 query_graph.add_edge(p_id, x)
-
-
 
     return query_graph
 
@@ -78,6 +87,7 @@ def return_query(graph: Graph, query: str, bm25, corpus: list) -> Graph:
     query_graph = build_query_graph(graph, weighted_papers)
 
     return query_graph
+
 
 def calculate_weight(x: int) -> int:
     if x > 50:
@@ -92,7 +102,6 @@ def calculate_weight(x: int) -> int:
         return 5
     else:
         return 3
-
 
 
 if __name__ == "__main__":
