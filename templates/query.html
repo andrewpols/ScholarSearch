@@ -25,18 +25,34 @@
             cursor: pointer
         }
     </style>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
 </head>
 <body>
-<form action="/search" method="post">
-    <input type="text" name="query" placeholder="Enter your search term" required/>
-    <button type="submit">Search</button>
-</form>
+<div class="flex items-center space-x-4 p-4">
+  <h1 class="text-2xl font-bold">
+  <span class="text-blue-700">ScholarNet</span>
+  <span class="text-black">Search</span>
+</h1>
+  <form action="/search" method="post" class="flex items-center">
+    <label for="default-search" class="sr-only">Search</label>
+    <div class="relative">
+      <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+        <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+        </svg>
+      </div>
+      <input type="text" name="query" class="block w-60 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500" placeholder="Search Research Papers..." required />
+    </div>
+    <button type="submit" class="ml-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">Search</button>
+  </form>
+</div>
+
 <script>
     isDragging = false
     const nodes = {{ nodesData | tojson }}
     const links = {{ linksData | tojson }}
 
-    const width = 1600, height = 900;
+    const width = 1600, height = 800;
     const color = d3.scaleOrdinal(d3.schemeCategory10);
     const svg = d3.create("svg")
         .attr("width", width)
@@ -137,5 +153,6 @@
     // Append SVG to the body (or another container)
     document.body.appendChild(svg.node());
 </script>
+<script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </body>
 </html>
