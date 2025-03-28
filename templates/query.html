@@ -6,9 +6,10 @@
     <title>Search Results for "{{ query }}"</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        body{
+        body {
             cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path fill="%23000" d="M4.5.79v22.42l6.56-6.57h9.29L4.5.79z"></path></svg>')
         }
+
         .link {
             stroke: #999;
             stroke-opacity: 0.6;
@@ -20,16 +21,16 @@
             fill: black;
         }
 
-        .nodes{
+        .nodes {
             cursor: pointer
         }
     </style>
 </head>
 <body>
 <form action="/search" method="post">
-    <input type="text" name="query" placeholder="Enter your search term" required />
+    <input type="text" name="query" placeholder="Enter your search term" required/>
     <button type="submit">Search</button>
-  </form>
+</form>
 <script>
     isDragging = false
     const nodes = {{ nodesData | tojson }}
@@ -81,14 +82,11 @@
                 label.filter(l => l.id === d.id).style("display", "none");
             }
         })
-    .on('click', async (event, d) => {
-        const newTab = window.open("./loading");
-
-        const doiURL = await fetchDOI(d.title, d.authors[0], "_blank");
-
-        newTab.location.href = doiURL;
-
-    });
+        .on('click', (event, d) => {
+            const title = encodeURIComponent(d.title);
+            const author = encodeURIComponent(d.authors[0]);
+            window.open(`/loading?title=${title}&author=${author}`, '_blank');
+        });
 
     // Add labels
     const label = svg.append("g")
@@ -134,56 +132,6 @@
         if (!event.active) simulation.alphaTarget(0);
         d.fx = null;
         d.fy = null;
-    }
-
-    async function fetchDOI(title, author) {
-        const url = `https://api.crossref.org/works?query.title=${encodeURIComponent(title)}&query.author=${encodeURIComponent(author)}`;
-
-        console.log(url)
-
-        try {
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ERROR:  ${response.status}`)
-            }
-
-            const data = await response.json();
-
-            const items = data.message.items;
-
-            if (items && items.length > 0) {
-                let doiURL;
-                console.log(items[0].title[0])
-                console.log(items[0].URL)
-                if (!isPartialMatch(title, items[0].title[0])){
-                    // API response does not match input title, so just use a Google Scholar search
-                    const scholarQuery = `${title}${author}`;
-                    const encodedScholarQuery = encodeURIComponent(scholarQuery);
-                    doiURL = `https://scholar.google.com/scholar?q=${encodedScholarQuery}`;
-                } else {
-                    doiURL = items[0].URL;
-                }
-                return doiURL;
-
-            } else{
-                console.log("No items found in response")
-            }
-
-        } catch(error) {
-            console.error('Error:', error)
-        }
-
-    }
-
-    function isPartialMatch(s1, s2, threshold=0.9) {
-        const comp1 = s1.toLowerCase().split(/\s+/);
-        const comp2 = s2.toLowerCase().split(/\s+/);
-
-        const commonWords = comp1.filter(word => comp2.includes(word))
-        const matchRatio = commonWords.length / comp1.length
-
-        return matchRatio >= threshold
     }
 
     // Append SVG to the body (or another container)
