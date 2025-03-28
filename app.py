@@ -1,7 +1,8 @@
+import requests
 from flask import Flask, render_template, request, redirect, url_for
-from graph import Graph, load_research_graph, Paper
-from search import CustomBM25Okapi, set_up_corpus, get_corpus, return_query, calculate_weight
-import csv
+from graph import Graph, load_research_graph
+from search import CustomBM25Okapi, get_corpus, return_query, calculate_weight
+from utils import is_partial_match
 
 app = Flask(__name__)
 mega_graph = Graph()
@@ -51,9 +52,40 @@ def results():
     return render_template('query.html', nodesData=nodes_data, linksData=links_data, query=query)
 
 
+@app.route('/fetch_doi', methods=['POST'])
+def fetch_doi():
+    title = request.form.get('title')
+    author = request.form.get('author')
+
+    url = f"https://api.crossref.org/works?query.title={title}&query.author={author}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+
+        items = data.get('message', {}).get('items', [])
+        if items:
+            doi_title = items[0].get('title', [''])[0]
+            doi_url = items[0].get('URL', None)
+
+            if doi_url and is_partial_match(title, doi_title):
+                return redirect(doi_url)
+
+        # Fallback to Google Scholar if no DOI found
+        scholar_query = f"{title} {author}"
+        encoded_query = requests.utils.requote_uri(scholar_query)
+        return redirect(f'https://scholar.google.com/scholar?q={encoded_query}')
+
+    except Exception as e:
+        return str(e), 500
+
+
 @app.route('/loading')
 def loading():
-    return render_template("loading.html")
+    title = request.args.get('title')
+    author = request.args.get('author')
+    return render_template('loading.html', title=title, author=author)
 
 
 if __name__ == '__main__':
