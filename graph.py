@@ -12,16 +12,19 @@ class _Vertex:
         - neighbours: The vertices that are adjacent to this vertex.
         - level: The nesting level of this vertex in the graph (1 if it was found using direct search,
                 2 if it is a neighbour of direct search).
+        - visible: Whether the vertex is visible on the graph
     """
     item: Any
     neighbours: set[_Vertex]
     level: int
+    visible: bool
 
     def __init__(self, item: Any, neighbours: set[_Vertex]) -> None:
         """Initialize a new vertex with the given item and neighbours."""
         self.item = item
         self.neighbours = neighbours
         self.level = 2
+        self.visible = True
 
 
 class Graph:

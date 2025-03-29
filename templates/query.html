@@ -25,52 +25,70 @@
             cursor: pointer
         }
     </style>
-<<<<<<< HEAD
     <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet">
-=======
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
->>>>>>> origin/main
 </head>
 <body>
 <div class="flex items-center space-x-4 p-4">
-  <h1 class="text-2xl font-bold">
-  <span class="text-blue-700">ScholarNet</span>
-  <span class="text-black">Search</span>
-</h1>
-  <form action="/search" method="post" class="flex items-center">
-    <label for="default-search" class="sr-only">Search</label>
-    <div class="relative">
-      <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-        <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-<<<<<<< HEAD
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"></path>
-        </svg>
-      </div>
-      <input type="text" name="query" class="block w-60 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500" placeholder="Search Research Papers..." required="">
-=======
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-        </svg>
-      </div>
-      <input type="text" name="query" class="block w-60 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500" placeholder="Search Research Papers..." required />
->>>>>>> origin/main
-    </div>
-    <button type="submit" class="ml-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">Search</button>
-  </form>
-</div>
-<<<<<<< HEAD
-=======
+    <h1 class="text-2xl font-bold">
+        <span class="text-blue-700">ScholarNet</span>
+        <span class="text-black">Search</span>
+    </h1>
+    <form action="/search" method="post" class="flex items-center">
+        <label for="default-search" class="sr-only">Search</label>
+        <div class="relative">
+            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                     viewBox="0 0 20 20">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"></path>
+                </svg>
+            </div>
+            <input type="text" name="query"
+                   class="block w-60 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                   placeholder="Search Research Papers..." required="" value= "{{ query }}">
+        </div>
+        <button type="submit"
+                class="ml-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
+            Search
+        </button>
+        <label for="filter" class="block text-sm font-medium text-gray-900 pr-5 pl-5">Filter</label>
+        <select id="citations_filter" name="citations_filter"
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5">
+            <option selected value="0">Number of Citations</option>
+            <option value=250>250+</option>
+            <option value=100>100+</option>
+            <option value=50>50+</option>
+            <option value=25>25+</option>
+            <option value=10>10+</option>
+        </select>
+        <select id="author_filter" name="author_filter"
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5">
+            <option selected value="0">Author</option>
+            {% for author in authors %}
+                <option value="{{ author }}">{{ author }}</option>
+            {% endfor %}
+        </select>
+        <select id="venue_filter" name="venue_filter"
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5">
+            <option selected value="0">Venue</option>
+            {% for venue in venues %}
+                <option value="{{ venue }}">{{ venue }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit"
+                class="ml-2 shrink-0 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
+            Apply Filter
+        </button>
 
->>>>>>> origin/main
+    </form>
+
+</div>
 <script>
     isDragging = false
     const nodes = {{ nodesData | tojson }}
     const links = {{ linksData | tojson }}
 
-<<<<<<< HEAD
     const width = 1600, height = 830;
-=======
-    const width = 1600, height = 800;
->>>>>>> origin/main
     const color = d3.scaleOrdinal(d3.schemeCategory10);
     const svg = d3.create("svg")
         .attr("width", width)
