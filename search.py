@@ -4,10 +4,15 @@ from rank_bm25 import BM25Okapi
 from graph import Graph, load_research_graph
 import numpy as np
 
+stop_words = {"the", "and", "of", "is", "about", "for", "paper", "study", "research", "result", "method",
+              "approach", "show", "propose", "based", "analysis"}
+# excluding certain keywords from consideration in the BM25 algorithm for enhanced efficiency
+
 
 class CustomBM25Okapi(BM25Okapi):
     def get_top_n_paper_score(self, query: list[str], documents: list[tuple[str, str]], n=200) -> list[list]:
-        scores = self.get_scores(query)
+        filtered_query = [word for word in query if word.lower() not in stop_words]
+        scores = self.get_scores(filtered_query)
         top_n = np.argsort(scores)[::-1][:n]
         return [[documents[i][0], documents[i][1], scores[i], 0] for i in top_n]
 
@@ -15,7 +20,8 @@ class CustomBM25Okapi(BM25Okapi):
 def get_corpus(g: Graph) -> list[tuple[str, str]]:
     graph_corpus = []
     for paper in g.vertices.values():
-        graph_corpus.append((paper.item.paper_id, paper.item.title))
+        title_words = [word.lower() for word in paper.item.title.split() if word.lower() not in stop_words]
+        graph_corpus.append((paper.item.paper_id, " ".join(title_words)))
     return graph_corpus
 
 
@@ -25,8 +31,8 @@ def get_most_cited_score(paper_scores, graph):
         num_cited_by = len(graph.vertices[paper_id].neighbours)
         paper_scores[i][3] = num_cited_by
 
-    weight_sim = 0.7
-    weight_cite = 0.3
+    weight_sim = 0.7 # using a 70% weighting for BM25
+    weight_cite = 0.3 # using a 30% weighting for citations
 
     max_sim = max(x[2] for x in paper_scores)
     max_cite = max(x[3] for x in paper_scores) if max(x[3] for x in paper_scores) > 0 else 1
