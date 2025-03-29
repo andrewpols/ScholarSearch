@@ -7,6 +7,8 @@ import numpy as np
 
 stop_words = {"the", "and", "of", "is", "about", "for", "paper", "study", "research", "result", "method",
               "approach", "show", "propose", "based", "analysis"}
+
+
 # excluding certain keywords from consideration in the BM25 algorithm for enhanced efficiency
 
 
@@ -32,8 +34,8 @@ def get_most_cited_score(paper_scores, graph):
         num_cited_by = len(graph.vertices[paper_id].neighbours)
         paper_scores[i][3] = num_cited_by
 
-    weight_sim = 0.7 # using a 70% weighting for BM25
-    weight_cite = 0.3 # using a 30% weighting for citations
+    weight_sim = 0.7  # using a 70% weighting for BM25
+    weight_cite = 0.3  # using a 30% weighting for citations
 
     max_sim = max(x[2] for x in paper_scores)
     max_cite = max(x[3] for x in paper_scores) if max(x[3] for x in paper_scores) > 0 else 1
@@ -91,6 +93,7 @@ def return_query(graph: Graph, query: str, bm25, corpus: list) -> Graph:
 
     return query_graph
 
+
 def filter_query(graph: Graph, citations: str, author: str, venue: str) -> Graph:
     print(venue)
     for paper in graph.vertices.values():
@@ -106,12 +109,14 @@ def filter_query(graph: Graph, citations: str, author: str, venue: str) -> Graph
                 paper.visible = False
     return graph
 
+
 def get_all_authors(graph: Graph) -> list[str]:
     authors = []
     for paper in graph.vertices.values():
         for author in paper.item.authors:
             authors.append(author)
     return authors
+
 
 def get_all_venues(graph: Graph) -> list[str]:
     venues = []

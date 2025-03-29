@@ -8,6 +8,7 @@ app = Flask(__name__)
 mega_graph = Graph()
 corpus = []
 bm25 = None
+search_history = []
 
 
 def startup():
@@ -39,6 +40,8 @@ def search():
 @app.route('/results')
 def results():
     query = request.args.get('query', '')
+    if query not in search_history[-3:]:
+        search_history.append(query)
     citations_filter = request.args.get('citations_filter', '')
     author_filter = request.args.get('author_filter', '0')
     venue_filter = request.args.get('venue_filter', '0')
@@ -58,7 +61,8 @@ def results():
             if x in query_graph.vertices and query_graph.vertices[x].visible and query_graph.vertices[paper].visible:
                 links_data.append({"source": query_graph.vertices[x].item.paper_id,
                                    "target": query_graph.vertices[paper].item.paper_id})
-    return render_template('query.html', nodesData=nodes_data, linksData=links_data, query=query, authors=authors, venues=venues)
+    return render_template('query.html', nodesData=nodes_data, linksData=links_data, query=query, authors=authors, venues=venues,
+                           searchHistory=search_history)
 
 
 @app.route('/fetch_doi', methods=['POST'])
