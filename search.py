@@ -1,4 +1,5 @@
 import pprint
+from typing import Optional
 
 from rank_bm25 import BM25Okapi
 from graph import Graph, load_research_graph
@@ -43,7 +44,7 @@ def get_most_cited_score(paper_scores, graph):
         reverse=True
     )
 
-    return sorted_data[:20]
+    return sorted_data[:100]
 
 
 def get_paper_by_title(graph, title):
@@ -70,14 +71,10 @@ def build_query_graph(mega_graph: Graph, weighted_papers: list) -> Graph:
 
     values = list(query_graph.vertices.values())
     for paper in values:
-        # if paper.item.url == "https://www.google.com/404":
-            # paper.item.url = get_doi(paper.item.title, paper.item.authors)
         p_id = paper.item.paper_id
         for x in paper.item.references[:10]:
             if x in mega_graph.vertices:
                 x_paper = mega_graph.vertices[x]
-                # if x_paper.item.url == "https://www.google.com/404":
-                    # x_paper.item.url = get_doi(x_paper.item.title, x_paper.item.authors)
                 query_graph.add_vertex(x_paper.item)
             if x in query_graph.vertices:
                 query_graph.add_edge(p_id, x)
@@ -93,6 +90,35 @@ def return_query(graph: Graph, query: str, bm25, corpus: list) -> Graph:
     query_graph = build_query_graph(graph, weighted_papers)
 
     return query_graph
+
+def filter_query(graph: Graph, citations: str, author: str, venue: str) -> Graph:
+    print(venue)
+    for paper in graph.vertices.values():
+        if paper.item.n_citation < int(citations):
+            paper.visible = False
+    if author != "0":
+        for paper in graph.vertices.values():
+            if author not in paper.item.authors:
+                paper.visible = False
+    if venue != "0":
+        for paper in graph.vertices.values():
+            if venue != paper.item.venue:
+                paper.visible = False
+    return graph
+
+def get_all_authors(graph: Graph) -> list[str]:
+    authors = []
+    for paper in graph.vertices.values():
+        for author in paper.item.authors:
+            authors.append(author)
+    return authors
+
+def get_all_venues(graph: Graph) -> list[str]:
+    venues = []
+    for paper in graph.vertices.values():
+        if paper.item.venue not in venues:
+            venues.append(paper.item.venue)
+    return [x for x in venues if x.strip()]
 
 
 def calculate_weight(x: int) -> int:
