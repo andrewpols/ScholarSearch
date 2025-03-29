@@ -123,7 +123,6 @@ def load_research_graph(csv_path: str = '../dblp-v10-2.csv') -> Graph:
     with open(csv_path, 'r') as file:
         reader = csv.reader(file)
         header = next(reader)
-        print("Header:", header)
         for row in reader:
             graph.add_vertex(process_row(row))
 
