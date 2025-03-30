@@ -1,7 +1,7 @@
 import requests
 from flask import Flask, render_template, request, redirect, url_for
 from graph import Graph, load_research_graph
-from search import CustomBM25Okapi, filter_query, get_corpus, return_query, calculate_weight, get_all_authors, get_all_venues
+from new_search import BM25, filter_query, get_corpus, return_query, calculate_weight, get_all_authors, get_all_venues, tokenize
 from utils import is_partial_match
 
 app = Flask(__name__)
@@ -19,8 +19,8 @@ def startup():
 
     mega_graph = load_research_graph(csv_path)
     corpus = get_corpus(mega_graph)
-    tokenized_corpus = [x[1].split(" ") for x in corpus]
-    bm25 = CustomBM25Okapi(tokenized_corpus)
+    tokenized_corpus = [tokenize(x[1]) for x in corpus]
+    bm25 = BM25(tokenized_corpus)
 
 
 @app.route('/')
