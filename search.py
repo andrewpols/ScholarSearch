@@ -15,9 +15,17 @@ from utils import tokenize
 class BM25:
     """
     A BM25 ranking model for information retrieval.
-    The BM25 model is a bag-of-words retrieval function that ranks a set of documents based on the query terms appearing
-    in each document, without taking into account the proximity of the query terms within the documents.
+
+    Instance Attributes:
+    - k1: Term frequency saturation parameter.
+    - b: Document length normalization parameter.
+    - tokenized_corpus: Tokenized documents.
+    - doc_count: Total number of documents.
+    - doc_lengths: Lengths of documents.
+    - average_doc_length: Average document length.
+    - frequencies: (DF: doc frequency, IDF: inverse doc frequency).
     """
+
     k1: float
     b: float
     tokenized_corpus: list
