@@ -1,4 +1,4 @@
-"""
+"""CSC111 Winter 2025 Project 2: Main Flask Application — ScholarNet
 This module contains the main Flask application for the project. It is responsible for handling the user interface and
 interacting with the backend to display the search results.
 """
@@ -68,9 +68,8 @@ def results() -> str:
             if x in query_dict and query_dict[x].visible and query_dict[paper].visible:
                 links_data.append({"source": query_dict[x].item.paper_id,
                                    "target": query_dict[paper].item.paper_id})
-    return render_template('query.html', nodesData=nodes_data, linksData=links_data, query=query, authors=authors,
-                           venues=venues,
-                           searchHistory=search_history)
+    return render_template('query.html', nodesData=nodes_data, linksData=links_data, query=query,
+                           authors=authors, venues=venues, searchHistory=search_history)
 
 
 @app.route('/fetch_doi', methods=['POST'])
@@ -120,16 +119,21 @@ def loading() -> str:
 
 
 if __name__ == '__main__':
-    import python_ta
+    # Optional: Uncomment code for testing purposes
+    # import python_ta.contracts
+    #
+    # python_ta.contracts.check_all_contracts()
+    #
+    # import python_ta
+    #
+    # python_ta.check_all(config={
+    #     # the names (strs) of imported modules
+    #     'extra-imports': ['requests', 'flask', 'search', 'utils', 'graph', 'typing', 'calculate_weight'],
+    #     'allowed-io': [],  # the names (strs) of functions that call print/open/input
+    #     'max-line-length': 120
+    # })
 
-    python_ta.check_all(config={
-        # the names (strs) of imported modules
-        'extra-imports': ['requests', 'flask', 'search', 'utils', 'graph', 'typing', 'calculate_weight'],
-        'allowed-io': [],  # the names (strs) of functions that call print/open/input
-        'max-line-length': 120
-    })
-
-    csv_path = '../dblp-v10-2.csv'
+    csv_path = 'data/research-papers.csv'
     mega_graph = load_research_graph(csv_path)
     corpus = get_corpus(mega_graph)
     tokenized_corpus = [tokenize(x[1]) for x in corpus]

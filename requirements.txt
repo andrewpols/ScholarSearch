@@ -17,5 +17,4 @@ kaleido
 
 # Project 2 Specific
 Flask~=3.1.0
-rank-bm25~=0.2.2
 requests~=2.32.3
