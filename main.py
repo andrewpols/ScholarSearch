@@ -1,4 +1,4 @@
-"""CSC111 Winter 2025 Project: Main Flask Application — ScholarNet
+"""CSC111 Winter 2025 Project 2: Main Flask Application — ScholarNet
 This module contains the main Flask application for the project. It is responsible for handling the user interface and
 interacting with the backend to display the search results.
 """
