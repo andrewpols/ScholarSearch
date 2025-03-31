@@ -1,4 +1,4 @@
-"""
+"""CSC111 Winter 2025 Project: BM25 Model and Query Graph Building
 This module contains the BM25 model for information retrieval and the functions to return the query graph based on the
 given query.
 It is responsible for tokenizing the text, calculating the BM25 scores, and building the query graph based on the

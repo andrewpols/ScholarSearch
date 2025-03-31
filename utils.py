@@ -1,4 +1,4 @@
-""" CSC111 Winter 2025 Project 2: Miscellaneous Utility Functions
+"""CSC111 Winter 2025 Project 2: Miscellaneous Utility Functions
 
 This file contains utility functions that are used in the project.
 """
