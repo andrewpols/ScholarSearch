@@ -1,44 +1,110 @@
-import pprint
-from typing import Optional
+"""
+This module contains the BM25 model for information retrieval and the functions to return the query graph based on the
+given query.
+It is responsible for tokenizing the text, calculating the BM25 scores, and building the query graph based on the
+weighted papers with the highest scores (i.e. most related to the given query).
+"""
 
-from rank_bm25 import BM25Okapi
+import math
+from collections import defaultdict
+
 from graph import Graph, load_research_graph
-import numpy as np
-
-stop_words = {"the", "and", "of", "is", "about", "for", "paper", "study", "research", "result", "method",
-              "approach", "show", "propose", "based", "analysis"}
+from utils import tokenize
 
 
-# excluding certain keywords from consideration in the BM25 algorithm for enhanced efficiency
+class BM25:
+    """
+    A BM25 ranking model for information retrieval.
+    The BM25 model is a bag-of-words retrieval function that ranks a set of documents based on the query terms appearing
+    in each document, without taking into account the proximity of the query terms within the documents.
+    """
+    k1: float
+    b: float
+    tokenized_corpus: list
+    doc_count: int
+    doc_lengths: list[int]
+    average_doc_length: float
+    frequencies: tuple[dict, dict]
+
+    def __init__(self, tokenized_corpus_list: list, k1: float = 1.25, b: float = 0.75) -> None:
+        self.k1 = k1
+        self.b = b
+        self.tokenized_corpus = tokenized_corpus_list
+        self.doc_count = len(tokenized_corpus_list)
+        self.doc_lengths = [len(doc) for doc in tokenized_corpus_list]
+        self.average_doc_length = sum(self.doc_lengths) / self.doc_count if self.doc_count > 0 else 1
+        self.frequencies = (defaultdict(int), {})  # (DF, IDF)
+
+        # Calculate document frequencies (DF)
+        for doc_tokens in tokenized_corpus_list:
+            unique_tokens = set(doc_tokens)
+            for token in unique_tokens:
+                self.frequencies[0][token] += 1
+
+        self.calculate_idf()
+
+    def calculate_idf(self) -> None:
+        """Compute IDF scores for all query items"""
+        for token, freq in self.frequencies[0].items():
+            self.frequencies[1][token] = math.log((self.doc_count - freq + 0.5) / (freq + 0.5) + 1)
+
+    def get_scores(self, query: str) -> list[float]:
+        """Calculate BM25 scores for all documents"""
+        query_tokens = tokenize(query)
+        scores = [0.0] * self.doc_count
+
+        for i, doc_tokens in enumerate(self.tokenized_corpus):
+            doc_length = self.doc_lengths[i]
+            for token in query_tokens:
+                if token not in self.frequencies[1]:
+                    continue
+                tf = doc_tokens.count(token)
+                numer = tf * (self.k1 + 1)
+                denom = tf + self.k1 * (1 - self.b + self.b * (doc_length / self.average_doc_length))
+                scores[i] += self.frequencies[1][token] * numer / denom
+
+        return scores
+
+    def get_top_n_paper_score(self, query: str, corpus_list: list) -> list:
+        """
+        Return a list of the top N papers with scores (maintaining your original format)
+        """
+        scores = self.get_scores(query)
+        score_results = [
+            [corpus_list[i][0], corpus_list[i][1], scores[i], 0]
+            for i in range(len(scores))
+        ]
+        return sorted(score_results, key=lambda x: x[2], reverse=True)[:200]
 
 
-class CustomBM25Okapi(BM25Okapi):
-    def get_top_n_paper_score(self, query: list[str], documents: list[tuple[str, str]], n=200) -> list[list]:
-        filtered_query = [word for word in query if word.lower() not in stop_words]
-        scores = self.get_scores(filtered_query)
-        top_n = np.argsort(scores)[::-1][:n]
-        return [[documents[i][0], documents[i][1], scores[i], 0] for i in top_n]
-
-
-def get_corpus(g: Graph) -> list[tuple[str, str]]:
+def get_corpus(g: Graph) -> list:
+    """
+    Return a list of the corpus (paper titles) for the BM25 model.
+    The corpus is a list of tuples where each tuple contains the paper ID and the tokenized title.
+    This is used to calculate the BM25 scores for the papers.
+    """
     graph_corpus = []
-    for paper in g.vertices.values():
-        title_words = [word.lower() for word in paper.item.title.split() if word.lower() not in stop_words]
+    for paper in g.get_all_item_vertex_mappings().values():
+        title_words = tokenize(paper.item.title)
         graph_corpus.append((paper.item.paper_id, " ".join(title_words)))
     return graph_corpus
 
 
-def get_most_cited_score(paper_scores, graph):
-    for i in range(len(paper_scores)):
-        paper_id = paper_scores[i][0]
-        num_cited_by = len(graph.vertices[paper_id].neighbours)
-        paper_scores[i][3] = num_cited_by
+def get_most_cited_score(paper_scores: list, g: Graph) -> list:
+    """
+    Return a list of the top 100 papers with the highest scores. The score is calculated as a weighted sum of the BM25
+    score and the number of citations.
+    """
+    for paper in paper_scores:
+        paper_id = paper[0]
+        num_cited_by = len(g.get_all_item_vertex_mappings()[paper_id].neighbours)
+        paper[3] = num_cited_by
 
-    weight_sim = 0.7  # using a 70% weighting for BM25
-    weight_cite = 0.3  # using a 30% weighting for citations
+    weight_sim = 0.7
+    weight_cite = 0.3
 
-    max_sim = max(x[2] for x in paper_scores)
-    max_cite = max(x[3] for x in paper_scores) if max(x[3] for x in paper_scores) > 0 else 1
+    max_sim = max(x[2] for x in paper_scores) if any(x[2] > 0 for x in paper_scores) else 1
+    max_cite = max(x[3] for x in paper_scores) if any(x[3] > 0 for x in paper_scores) else 1
 
     sorted_data = sorted(
         paper_scores,
@@ -49,110 +115,101 @@ def get_most_cited_score(paper_scores, graph):
     return sorted_data[:100]
 
 
-def get_paper_by_title(graph, title):
-    return next((paper for paper in graph.vertices.values() if paper.item.title == title), None)
-
-
-def truncate_title(title, max_length=50):
-    return title if len(title) <= max_length else title[:max_length - 3] + "..."
-
-
-def set_up_corpus(g: Graph):
-    corpus = get_corpus(graph)
-    tokenized_corpus = [x[1].split(" ") for x in corpus]
-    bm25 = CustomBM25Okapi(tokenized_corpus)
-    return corpus, bm25
-
-
 def build_query_graph(mega_graph: Graph, weighted_papers: list) -> Graph:
+    """
+    Return a query graph based on the weighted papers with the highest scores.
+    This is a helper function for the return_query function meant to build the query graph based on the
+    given weighted papers.
+    """
     query_graph = Graph()
-    pprint.pprint(weighted_papers)
     for paper in weighted_papers:
-        query_graph.add_vertex(mega_graph.vertices[paper[0]].item)
-        query_graph.vertices[mega_graph.vertices[paper[0]].item.paper_id].level = 1
+        query_graph.add_vertex(mega_graph.get_all_item_vertex_mappings()[paper[0]].item)
 
-    values = list(query_graph.vertices.values())
+        paper_vertex = mega_graph.get_all_item_vertex_mappings()[paper[0]]
+
+        query_graph.get_all_item_vertex_mappings()[paper_vertex.item.paper_id].level = 1
+
+    values = list(query_graph.get_all_item_vertex_mappings().values())
     for paper in values:
         p_id = paper.item.paper_id
         for x in paper.item.references[:10]:
-            if x in mega_graph.vertices:
-                x_paper = mega_graph.vertices[x]
+            if x in mega_graph.get_all_item_vertex_mappings():
+                x_paper = mega_graph.get_all_item_vertex_mappings()[x]
                 query_graph.add_vertex(x_paper.item)
-            if x in query_graph.vertices:
+            if x in query_graph.get_all_item_vertex_mappings():
                 query_graph.add_edge(p_id, x)
 
     return query_graph
 
 
-def return_query(graph: Graph, query: str, bm25, corpus: list) -> Graph:
-    result = bm25.get_top_n_paper_score(query.split(" "), corpus)
+def return_query(g: Graph, query: str, bm25_model: BM25, corpus_list: list) -> Graph:
+    """
+    Return a query graph based on the given query, BM25 model, and corpus.
+    """
+    result = bm25_model.get_top_n_paper_score(query, corpus_list)
 
-    weighted_papers = get_most_cited_score(result, graph)
+    weighted_papers = get_most_cited_score(result, g)
 
-    query_graph = build_query_graph(graph, weighted_papers)
+    query_graph = build_query_graph(g, weighted_papers)
 
     return query_graph
 
 
-def filter_query(graph: Graph, citations: str, author: str, venue: str) -> Graph:
-    print(venue)
-    for paper in graph.vertices.values():
+def filter_query(g: Graph, citations: str, author: str, venue: str) -> Graph:
+    """
+    Filter the query graph based on the given citations, author, and venue.
+    """
+    for paper in g.get_all_item_vertex_mappings().values():
         if paper.item.n_citation < int(citations):
             paper.visible = False
     if author != "0":
-        for paper in graph.vertices.values():
+        for paper in g.get_all_item_vertex_mappings().values():
             if author not in paper.item.authors:
                 paper.visible = False
     if venue != "0":
-        for paper in graph.vertices.values():
+        for paper in g.get_all_item_vertex_mappings().values():
             if venue != paper.item.venue:
                 paper.visible = False
-    return graph
+    return g
 
 
-def get_all_authors(graph: Graph) -> list[str]:
+def get_all_authors(g: Graph) -> list[str]:
+    """
+    Return a list of all authors in the graph.
+    """
     authors = []
-    for paper in graph.vertices.values():
+    for paper in g.get_all_item_vertex_mappings().values():
         for author in paper.item.authors:
             authors.append(author)
     return authors
 
 
-def get_all_venues(graph: Graph) -> list[str]:
+def get_all_venues(g: Graph) -> list[str]:
+    """
+    Return a list of all venues in the graph.
+    """
     venues = []
-    for paper in graph.vertices.values():
+    for paper in g.get_all_item_vertex_mappings().values():
         if paper.item.venue not in venues:
             venues.append(paper.item.venue)
     return [x for x in venues if x.strip()]
 
 
-def calculate_weight(x: int) -> int:
-    if x > 50:
-        return 16
-    elif x > 25:
-        return 13
-    elif x > 10:
-        return 10
-    elif x > 5:
-        return 7
-    elif x > 2:
-        return 5
-    else:
-        return 3
-
-
 if __name__ == "__main__":
+    import python_ta
+
+    python_ta.check_all(config={
+        'extra-imports': ['math', 'collections', 'graph', 'utils'],  # the names (strs) of imported modules
+        'allowed-io': ['BM25.get_scores', 'filter_query'],  # the names (strs) of functions that call print/open/input
+        'max-line-length': 120
+    })
+
     graph = load_research_graph()
-
     corpus = get_corpus(graph)
-    tokenized_corpus = [x[1].split(" ") for x in corpus]
-    bm25 = CustomBM25Okapi(tokenized_corpus)
+    tokenized_corpus = [tokenize(x[1]) for x in corpus]
 
-    result = bm25.get_top_n_paper_score('artificial intelligence'.split(" "), corpus)
+    bm25 = BM25(tokenized_corpus)
 
-    weighted_papers = get_most_cited_score(result, graph)
-
-    for i, paper in enumerate(weighted_papers):
-        title = truncate_title(paper[1], max_length=50)
-        print(f"{i + 1:>2}.) Paper ID: {paper[0]} | Title: {title:<53} | "
-              f"BM25 Score: {paper[2]:>6.2f} | Cited By: {paper[3]:>4}")
+    # Search and rank
+    results = bm25.get_top_n_paper_score("artificial intelligence", corpus)
+    final_results = get_most_cited_score(results, graph)
