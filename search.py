@@ -15,9 +15,17 @@ from utils import tokenize
 class BM25:
     """
     A BM25 ranking model for information retrieval.
-    The BM25 model is a bag-of-words retrieval function that ranks a set of documents based on the query terms appearing
-    in each document, without taking into account the proximity of the query terms within the documents.
+
+    Instance Attributes:
+    - k1: Term frequency saturation parameter.
+    - b: Document length normalization parameter.
+    - tokenized_corpus: Tokenized documents.
+    - doc_count: Total number of documents.
+    - doc_lengths: Lengths of documents.
+    - average_doc_length: Average document length.
+    - frequencies: (DF: doc frequency, IDF: inverse doc frequency).
     """
+
     k1: float
     b: float
     tokenized_corpus: list
@@ -44,12 +52,19 @@ class BM25:
         self.calculate_idf()
 
     def calculate_idf(self) -> None:
-        """Compute IDF scores for all query items"""
+        """Compute IDF scores for all query items
+
+        The formula for IDF is: log((N - n + 0.5) / (n + 0.5) + 1),
+        where N is the total number of documents, n is the number of documents containing the term.
+        """
         for token, freq in self.frequencies[0].items():
             self.frequencies[1][token] = math.log((self.doc_count - freq + 0.5) / (freq + 0.5) + 1)
 
     def get_scores(self, query: str) -> list[float]:
-        """Calculate BM25 scores for all documents"""
+        """Calculate BM25 scores for all documents
+
+        The formula for BM25 scores is: IDF * (TF * (k1 + 1)) / (TF + k1 * (1 - b + b * (doc_length / avg_doc_length))).
+        """
         query_tokens = tokenize(query)
         scores = [0.0] * self.doc_count
 
@@ -90,9 +105,9 @@ def get_corpus(g: Graph) -> list:
     return graph_corpus
 
 
-def get_most_cited_score(paper_scores: list, g: Graph) -> list:
+def get_most_cited_score(paper_scores: list, g: Graph, n: int = 75) -> list:
     """
-    Return a list of the top 100 papers with the highest scores. The score is calculated as a weighted sum of the BM25
+    Return a list of the top n papers with the highest scores. The score is calculated as a weighted sum of the BM25
     score and the number of citations.
     """
     for paper in paper_scores:
@@ -112,7 +127,7 @@ def get_most_cited_score(paper_scores: list, g: Graph) -> list:
         reverse=True
     )
 
-    return sorted_data[:100]
+    return sorted_data[:n]
 
 
 def build_query_graph(mega_graph: Graph, weighted_papers: list) -> Graph:
@@ -196,14 +211,20 @@ def get_all_venues(g: Graph) -> list[str]:
 
 
 if __name__ == "__main__":
-    import python_ta
+    # Optional: Uncomment code below for testing purposes
+    # import doctest
+    #
+    # doctest.testmod()
+    #
+    # import python_ta
+    #
+    # python_ta.check_all(config={
+    #     'extra-imports': ['math', 'collections', 'graph', 'utils'],  # the names (strs) of imported modules
+    #     'allowed-io': ['BM25.get_scores', 'filter_query'],  # the names (strs) of functions that call print/open/input
+    #     'max-line-length': 120
+    # })
 
-    python_ta.check_all(config={
-        'extra-imports': ['math', 'collections', 'graph', 'utils'],  # the names (strs) of imported modules
-        'allowed-io': ['BM25.get_scores', 'filter_query'],  # the names (strs) of functions that call print/open/input
-        'max-line-length': 120
-    })
-
+    # Example usage
     graph = load_research_graph()
     corpus = get_corpus(graph)
     tokenized_corpus = [tokenize(x[1]) for x in corpus]

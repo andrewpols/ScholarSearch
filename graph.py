@@ -1,4 +1,4 @@
-"""
+"""CSC111 Winter 2025 Project 2: Load Research Graph — (Graph Class and Paper Class)
 This module contains the Graph, Vertex, and Paper classes.
 It is responsible for loading the research graph from the csv file and returning a Graph object.
 """
@@ -34,10 +34,11 @@ class _Vertex:
 
 
 class Graph:
-    """A graph.
+    """A graph used to represent the research papers.
 
     Representation Invariants:
-    - all(item == self._vertices[item].item for item in self._vertices)
+    - all(isinsstance(vertex.item, paper) for vertex in self._vertices.values())
+    - all(item == self._vertices[item.paper_id].item for item in self._vertices)
     """
     # Private Instance Attributes:
     #     - _vertices: A collection of the vertices contained in this graph.
@@ -55,6 +56,13 @@ class Graph:
 
         Preconditions:
             - item not in self._vertices
+            - item.paper_id is a valid attribute
+
+        >>> g = Graph()
+        >>> p = Paper(['John Doe'], 10, ['1234'], 'A Study on Algorithms', 'Journal of Algorithms', '1234')
+        >>> g.add_vertex(p)
+        >>> g._vertices[p.paper_id].item == p
+        True
         """
         self._vertices[item.paper_id] = _Vertex(item, set())
 
@@ -65,6 +73,17 @@ class Graph:
 
         Preconditions:
             - item1 != item2
+
+        >>> g = Graph()
+        >>> p1 = Paper(['John Doe'], 10, ['1234'], 'A Study on Algorithms', 'Journal of Algorithms', '1234')
+        >>> p2 = Paper(['Jane Doe'], 5, ['1234'], 'A Study on Algorithms', 'Journal of Algorithms', '5678')
+        >>> g.add_vertex(p1)
+        >>> g.add_vertex(p2)
+        >>> g.add_edge(p1.paper_id, p2.paper_id)
+        >>> g._vertices[p2.paper_id] in g._vertices[p1.paper_id].neighbours
+        True
+        >>> g._vertices[p1.paper_id] in g._vertices[p2.paper_id].neighbours
+        False
         """
         if id1 in self._vertices and id2 in self._vertices:
             v1 = self._vertices[id1]
@@ -85,6 +104,14 @@ class Graph:
 class Paper:
     """
     A dataclass representing a paper in the research graph.
+
+    Instance Attributes:
+        - authors: The authors of the paper.
+        - n_citation: The number of citations the paper has.
+        - references: The references the paper has.
+        - title: The title of the paper.
+        - venue: The venue where the paper was published.
+        - paper_id: The unique identifier of the paper.
     """
     authors: list[str]
     n_citation: int
@@ -100,7 +127,11 @@ def process_row(row: list) -> Paper:
 
     Preconditions:
         - row is a list of length 8.
-    """
+
+    >>> process_row(['0', "['John Doe', 'Jane Doe']", '10', "['1234']", 'A Study on Algorithms', \
+        'Journal of Algorithms', '1234', '1234'])
+    Paper(authors=['John Doe', 'Jane Doe'], n_citation=10, references=['1234'], title='A Study on Algorithms', \
+venue='Journal of Algorithms', paper_id='1234')"""
 
     authors_pre_split = row[1].strip("[]").split(', ')
     authors = [item.strip("'\"") for item in authors_pre_split]
@@ -118,18 +149,23 @@ def process_row(row: list) -> Paper:
     return Paper(authors, n_citations, references, title, venue, paper_id)
 
 
-def load_research_graph(csv_path: str = '../dblp-v10-2.csv') -> Graph:
+def load_research_graph(csv_path: str = 'data/research-papers.csv') -> Graph:
     """
     Load the research graph from the csv file and return a Graph object.
 
     Preconditions:
         - csv_path is a valid path to the csv file.
+
+    >>> g = load_research_graph('data/research-papers.csv')
+    >>> 'Human intelligence needs artificial intelligence' in \
+        {p.item.title for p in g.get_all_item_vertex_mappings().values()}
+    True
     """
     graph = Graph()
 
     with open(csv_path, 'r') as file:
         reader = csv.reader(file)
-        header = next(reader)
+        next(reader)
         for row in reader:
             graph.add_vertex(process_row(row))
 
@@ -144,10 +180,19 @@ def load_research_graph(csv_path: str = '../dblp-v10-2.csv') -> Graph:
 
 
 if __name__ == "__main__":
-    import python_ta
-
-    python_ta.check_all(config={
-        'extra-imports': ['csv'],  # the names (strs) of imported modules
-        'allowed-io': ['load_research_graph'],  # the names (strs) of functions that call print/open/input
-        'max-line-length': 120
-    })
+    pass
+    # Optional: Uncomment code for testing purposes
+    # import python_ta.contracts
+    #
+    # python_ta.contracts.check_all_contracts()
+    #
+    # import doctest
+    # doctest.testmod()
+    # #
+    # # import python_ta
+    # #
+    # # python_ta.check_all(config={
+    # #     'extra-imports': ['csv'],  # the names (strs) of imported modules
+    # #     'allowed-io': ['load_research_graph'],  # the names (strs) of functions that call print/open/input
+    # #     'max-line-length': 120
+    # # })
