@@ -5,6 +5,7 @@ interacting with the backend to display the search results.
 from typing import Union
 
 import requests
+import os
 from flask import Flask, Response, render_template, request, redirect, url_for
 from graph import load_research_graph
 from search import BM25, filter_query, get_corpus, return_query, get_all_authors, \
@@ -12,7 +13,9 @@ from search import BM25, filter_query, get_corpus, return_query, get_all_authors
 from utils import is_partial_match, calculate_weight
 
 
-app = Flask(__name__)
+template_dir = os.path.abspath('../frontend/static/templates')
+static_dir = os.path.abspath('../frontend/static')
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
 
 @app.route('/')
@@ -133,7 +136,7 @@ if __name__ == '__main__':
     #     'max-line-length': 120
     # })
 
-    csv_path = 'data/research-papers.csv'
+    csv_path = '../data/research-papers.csv'
     mega_graph = load_research_graph(csv_path)
     corpus = get_corpus(mega_graph)
     tokenized_corpus = [tokenize(x[1]) for x in corpus]

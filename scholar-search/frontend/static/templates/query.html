@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Search Results for "{{ query }}"</title>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-force-boundary@0.0.1/dist/d3-force-boundary.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap"
+          rel="stylesheet">
+
+    <link rel='stylesheet' href="{{ url_for('static', filename='query.css') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet">
+</head>
+
+
+<form id="search-form" action="/search" method="post" class="flex items-start justify-between">
+    <div id="header-bar">
+
+        <div style="display: flex; align-items: flex-start">
+            <h1 class="text-2xl font-bold grid" style="padding-right: 24px">
+              <span class="text-blue-700">Scholar</span>
+              <span class="text-black">Search</span>
+            </h1>
+            <label for="default-search" class="sr-only">Search</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                         viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"></path>
+                    </svg>
+                </div>
+                <input type="text" name="query"
+                       class="block w-60 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                       placeholder="Search Research Papers..." required="" value="{{ query }}">
+            </div>
+            <button type="submit"
+                    class="ml-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
+                Search
+            </button>
+        </div>
+
+        <div id="filter-bar">
+            <select id="citations_filter" name="citations_filter"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5">
+                <option selected value="0">Number of Citations</option>
+                <option value=250>250+</option>
+                <option value=100>100+</option>
+                <option value=50>50+</option>
+                <option value=25>25+</option>
+                <option value=10>10+</option>
+            </select>
+            <select id="author_filter" name="author_filter"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5">
+                <option selected value="0">Author</option>
+                {% for author in authors %}
+                    <option value="{{ author }}">{{ author }}</option>
+                {% endfor %}
+            </select>
+            <select id="venue_filter" name="venue_filter"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5">
+                <option selected value="0">Venue</option>
+                {% for venue in venues %}
+                    <option value="{{ venue }}">{{ venue }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit"
+                    class="ml-2 shrink-0 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">
+                Apply Filter
+            </button>
+        </div>
+    </div>
+</form>
+
+
+<div id="history">
+    <div class="w-48 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg">
+        <button href="#" aria-current="true"
+                class="block w-full px-4 py-2 text-white bg-blue-700 border-b border-gray-200 rounded-t-lg cursor-pointer">
+            Search History
+        </button>
+        <form action="/search" method="post" class="flex items-center">
+            <input id="query1" type="hidden" name="query" value="">
+            <button id="hist1"
+                    class="submit-btn block w-full px-4 py-2 border-b border-gray-200 cursor-pointer hover:bg-gray-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+            </button>
+        </form>
+
+        <form action="/search" method="post" class="flex items-center">
+            <input id="query2" type="hidden" name="query" value="">
+            <button id="hist2"
+                    class="submit-btn block w-full px-4 py-2 border-b border-gray-200 cursor-pointer hover:bg-gray-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+            </button>
+        </form>
+
+        <form action="/search" method="post" class="flex items-center">
+            <input id="query3" type="hidden" name="query" value="">
+            <button id="hist3"
+                    class="submit-btn block w-full px-4 py-2 border-b border-gray-200 cursor-pointer hover:bg-gray-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:text-blue-700">
+            </button>
+        </form>
+    </div>
+</div>
+
+    <div id="graph">
+
+        <div id="tooltip">
+            <p id="paper-title"></p>
+            <p id="paper-author"></p>
+
+            <div id="abstract-container">
+                <p id="paper-abstract"></p>
+                <button id="abstract-toggle">View Abstract</button>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+    let isDragging = false
+    const nodes = {{nodesData | tojson}};
+    const links = {{linksData | tojson}};
+    const searchHistory = {{searchHistory | tojson}};
+</script>
+
+<script src="{{ url_for('static', filename='query.js') }}"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/flowblite@3.1.2/dist/flowbite.min.js"></script>
+
+</body>
+</html>
