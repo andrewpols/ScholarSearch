@@ -1,6 +1,9 @@
 scholar-search/data/cache/
 scholar-search/data/research-papers.csv
 scholar-search/src/.env
+
 .DS_Store
+.idea
+venv
 __pycache__/
 *.pyc
