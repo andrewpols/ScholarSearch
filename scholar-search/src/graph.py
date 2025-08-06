@@ -5,9 +5,17 @@ It is responsible for loading the research graph from the csv file and returning
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any
+from kaggle.api.kaggle_api_extended import KaggleApi
 import csv
+
+KAGGLE_DATASET_INFO = {
+    'user': 'nechbamohammed',
+    'dataset': 'research-papers-dataset',
+    'csv_file': 'dblp-v10.csv'
+}
 
 
 class _Vertex:
@@ -113,6 +121,7 @@ class Paper:
         - venue: The venue where the paper was published.
         - paper_id: The unique identifier of the paper.
     """
+    abstract: str
     authors: list[str]
     n_citation: int
     references: list[str]
@@ -127,11 +136,9 @@ def process_row(row: list) -> Paper:
 
     Preconditions:
         - row is a list of length 8.
+    """
 
-    >>> process_row(['0', "['John Doe', 'Jane Doe']", '10', "['1234']", 'A Study on Algorithms', \
-        'Journal of Algorithms', '1234', '1234'])
-    Paper(authors=['John Doe', 'Jane Doe'], n_citation=10, references=['1234'], title='A Study on Algorithms', \
-venue='Journal of Algorithms', paper_id='1234')"""
+    abstract = row[0]
 
     authors_pre_split = row[1].strip("[]").split(', ')
     authors = [item.strip("'\"") for item in authors_pre_split]
@@ -146,10 +153,28 @@ venue='Journal of Algorithms', paper_id='1234')"""
     venue = row[5]
 
     paper_id = row[7]
-    return Paper(authors, n_citations, references, title, venue, paper_id)
+    return Paper(abstract, authors, n_citations, references, title, venue, paper_id)
 
 
-def load_research_graph(csv_path: str = 'data/research-papers.csv') -> Graph:
+def download_kaggle_csv() -> None:
+    """Download the .csv file associated with the kaggle dataset with name .... """
+    user, dataset, csv_file = KAGGLE_DATASET_INFO['user'], KAGGLE_DATASET_INFO['dataset'], \
+        KAGGLE_DATASET_INFO['csv_file']
+
+    kaggle_api = KaggleApi()
+    kaggle_api.authenticate()  # Either looks for ~/.kaggle/kaggle.json OR environment variables containing auth keys
+    kaggle_api.dataset_download_files(dataset=f"{user}/{dataset}", path="../data", unzip=True)
+
+    old_path = f"../data/{csv_file}"
+    new_path = "../data/research-papers.csv"
+
+    if os.path.exists(old_path):
+        os.rename(old_path, new_path)
+    else:
+        raise IOError
+
+
+def load_research_graph(csv_path: str = '../data/research-papers.csv') -> Graph:
     """
     Load the research graph from the csv file and return a Graph object.
 
@@ -161,6 +186,9 @@ def load_research_graph(csv_path: str = 'data/research-papers.csv') -> Graph:
         {p.item.title for p in g.get_all_item_vertex_mappings().values()}
     True
     """
+    if not os.path.exists('../data/research-papers.csv'):
+        download_kaggle_csv()
+
     graph = Graph()
 
     with open(csv_path, 'r') as file:

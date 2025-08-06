@@ -8,12 +8,14 @@ const svg = d3.create("svg")
     .attr("viewBox", [-width / 2, -height / 2, width, height])
     .attr("style", "max-width: 100%; height: auto; ");
 
-// Create simulation
 const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id))
-    .force("charge", d3.forceManyBody().strength(d => -d.weight * 23))
+    .force("charge", d3.forceManyBody().strength(d => {
+        const scalingFactor = 5 * Math.sqrt(width * height) / nodes.length; // Normalize by graph area and node count
+        return -d.weight * scalingFactor;
+    }))
     .force("x", d3.forceX())
-    .force("y", d3.forceY())
+    .force("y", d3.forceY());
 
 // Draw links
 const link = svg.append("g")
@@ -27,6 +29,8 @@ let lastNodeHovered;
 let lastNodeGroup;
 let lastPaper;
 
+const sizeScalingFactor = 2 * Math.max(width, height) / Math.min(width, height);
+
 // Draw nodes
 const node = svg.append("g")
     .attr("class", "nodes")
@@ -34,7 +38,7 @@ const node = svg.append("g")
     .data(nodes)
     .enter().append("circle")
     .attr("class", "node")
-    .attr("r", d => d.weight * 3)
+    .attr("r", d => d.weight * sizeScalingFactor)
     .attr("fill", d => color(d.group))
     .call(d3.drag()
         .on("start", dragStarted)
@@ -83,7 +87,10 @@ const label = svg.append("g")
     .attr("class", "label")
     .text(d => d.title).style("display", "none");
 
-// Update positions on every tick
+const centerX = 0; // Center of the graph
+const centerY = 0;
+const radius = Math.min(width, height) / 2.1; // Define the circle's radius
+
 simulation.on("tick", () => {
     link
         .attr("x1", d => d.source.x)
@@ -92,7 +99,19 @@ simulation.on("tick", () => {
         .attr("y2", d => d.target.y);
 
     node
-        .attr("cx", d => d.x)
+        .attr("cx", d => {
+            const dx = d.x - centerX; // horizontal distance from centre
+            const dy = d.y - centerY; // vertical distance from centre
+
+            // i.e. Pythagorean Theorem; if dx^2 + dy^2 > r^2, we are outside the radius of the circle, so adjust
+            // Otherwise, position is valid, so keep current position
+            if (dx * dx + dy * dy > radius * radius) {
+                const angle = Math.atan2(dy, dx);
+                d.x = centerX + radius * Math.cos(angle); // Positions node on x-coordinate boundary corresponding to angle
+                d.y = centerY + radius * Math.sin(angle); // Positions node on y-coordinate boundary corresponding to angle
+            }
+            return d.x;
+        })
         .attr("cy", d => d.y);
 
     label
@@ -122,9 +141,6 @@ function dragEnded(event, d) {
 
 function updateSearchHistory(searchHistory) {
     i = searchHistory.length - 1
-
-    console.log(i);
-    console.log('here');
 
     while (i >= 0 && i < searchHistory.length && i > searchHistory.length - 4) {
         const historyBar = document.getElementById(`hist${searchHistory.length - i}`);

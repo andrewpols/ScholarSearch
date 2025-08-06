@@ -3,6 +3,8 @@
 This file contains utility functions that are used in the project.
 """
 
+from flask import session
+
 STOP_WORDS = ("the", "and", "of", "is", "about", "for", "paper", "study", "research", "result",
               "method", "approach", "show", "propose", "based", "analysis")
 
@@ -58,6 +60,27 @@ def tokenize(text: str, stop_strs: tuple[str] = STOP_WORDS) -> list[str]:
     ['an', 'on', 'antibodies', 'proteins']
     """
     return [word.lower() for word in text.split() if word.isalpha() and word.lower() not in stop_strs]
+
+
+def save_search_history(search_history: list[str]) -> None:
+    """Save the user's search history to the session."""
+    session['search_history'] = search_history
+
+
+def load_search_history() -> list[str]:
+    """Load the user's search history from the session."""
+    return session.get('search_history', [])
+
+
+def add_to_search_history(query: str) -> None:
+    """Add a search query to the user's session-based search history."""
+    search_history = load_search_history()
+    if query not in search_history[-3:]:
+        search_history.append(query)
+        if len(search_history) > 3:
+            search_history.pop(0)
+
+        save_search_history(search_history)
 
 
 if __name__ == "__main__":

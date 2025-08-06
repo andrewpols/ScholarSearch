@@ -10,6 +10,7 @@ from collections import defaultdict
 
 from graph import Graph, load_research_graph
 from utils import tokenize
+import heapq
 
 
 class BM25:
@@ -80,29 +81,29 @@ class BM25:
 
         return scores
 
-    def get_top_n_paper_score(self, query: str, corpus_list: list) -> list:
+    def get_top_n_paper_score(self, query: str, corpus_list: list, n: int = 200) -> list:
         """
-        Return a list of the top N papers with scores (maintaining your original format)
+        Return a list of the top N papers with scores
         """
+        # Ensure corpus_list and scores have the same length
         scores = self.get_scores(query)
-        score_results = [
-            [corpus_list[i][0], corpus_list[i][1], scores[i], 0]
-            for i in range(len(scores))
-        ]
-        return sorted(score_results, key=lambda x: x[2], reverse=True)[:200]
+        if len(corpus_list) != len(scores):
+            raise ValueError("Mismatch between corpus_list and scores length.")
+
+        # Get the top N scores
+        top_n = heapq.nlargest(n, enumerate(scores), key=lambda x: x[1])
+        return [[corpus_list[i][0], corpus_list[i][1], score, 0] for i, score in top_n]
 
 
-def get_corpus(g: Graph) -> list:
+def get_corpus(g: Graph):
     """
     Return a list of the corpus (paper titles) for the BM25 model.
     The corpus is a list of tuples where each tuple contains the paper ID and the tokenized title.
     This is used to calculate the BM25 scores for the papers.
     """
-    graph_corpus = []
     for paper in g.get_all_item_vertex_mappings().values():
         title_words = tokenize(paper.item.title)
-        graph_corpus.append((paper.item.paper_id, " ".join(title_words)))
-    return graph_corpus
+        yield (paper.item.paper_id, " ".join(title_words))
 
 
 def get_most_cited_score(paper_scores: list, g: Graph, n: int = 75) -> list:
@@ -147,7 +148,7 @@ def build_query_graph(mega_graph: Graph, weighted_papers: list) -> Graph:
     values = list(query_graph.get_all_item_vertex_mappings().values())
     for paper in values:
         p_id = paper.item.paper_id
-        for x in paper.item.references[:10]:
+        for x in paper.item.references[:5]:
             if x in mega_graph.get_all_item_vertex_mappings():
                 x_paper = mega_graph.get_all_item_vertex_mappings()[x]
                 query_graph.add_vertex(x_paper.item)

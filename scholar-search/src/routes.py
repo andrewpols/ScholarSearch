@@ -1,81 +1,101 @@
-"""CSC111 Winter 2025 Project 2: Main Flask Application — ScholarNet
-This module contains the main Flask application for the project. It is responsible for handling the user interface and
-interacting with the backend to display the search results.
-"""
 from typing import Union
 
 import requests
-import os
-from flask import Flask, Response, render_template, request, redirect, url_for
+from search import get_all_authors, get_all_venues
+from utils import is_partial_match, calculate_weight, save_search_history, load_search_history
+from resource_loader import get_resource
+
+from flask import Blueprint, Response, render_template, request, redirect, url_for
 from graph import load_research_graph
-from search import BM25, filter_query, get_corpus, return_query, get_all_authors, \
-    get_all_venues, tokenize
-from utils import is_partial_match, calculate_weight
+from search import BM25, filter_query, get_corpus, return_query, tokenize
+
+main_routes = Blueprint('main_routes', __name__)
 
 
-template_dir = os.path.abspath('../frontend/static/templates')
-static_dir = os.path.abspath('../frontend/static')
-app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-
-
-@app.route('/')
+@main_routes.route('/')
 def home() -> str:
     """
     Return the string redirecting to the main page of the application.
     """
+
     return render_template('index.html')
 
 
-@app.route('/search', methods=['POST'])
+@main_routes.route('/search', methods=['POST'])
 def search() -> Response:
     """
     Return a Response associated with the search query provided by the user. Redirect the user to the results page
     with the given data to display the search results.
     """
     query = request.form['query']
+
+    search_history = load_search_history()
+
+    if query not in search_history[-3:]:
+        search_history.append(query)
+        if len(search_history) > 3:
+            search_history.pop(0)
+
+        save_search_history(search_history)
+
     citations_filter = request.form.get('citations_filter', 0)
-    author_filter = request.form.get('author_filter', "0")
-    venue_filter = request.form.get('venue_filter', "0")
-    return redirect(url_for('results', query=query, citations_filter=citations_filter,
+    author_filter = request.form.get('author_filter', 0)
+    venue_filter = request.form.get('venue_filter', 0)
+
+    return redirect(url_for('main_routes.results', query=query, citations_filter=citations_filter,
                             author_filter=author_filter, venue_filter=venue_filter))
 
 
-@app.route('/results')
+print('[ RESOURCES ] Retrieving...')
+mega_graph = get_resource('mega_graph', load_research_graph)
+corpus = get_resource('corpus', lambda: list(get_corpus(mega_graph)))
+tokenized_corpus = get_resource('tokenized_corpus', lambda: [tokenize(s[1]) for s in corpus])
+bm25 = get_resource('bm25', lambda: BM25(tokenized_corpus))
+
+
+@main_routes.route('/results')
 def results() -> str:
     """
     Return a string redirecting the user to the results page based on the searched query and filters.
     This is the main search results page where the user can see the search results and apply filters based on their
     input. The search results are visualized as a graph with nodes representing papers and edges representing citations.
     """
+
     query = request.args.get('query', '')
-    if query not in search_history[-3:]:
-        search_history.append(query)
     citations_filter = request.args.get('citations_filter', '')
     author_filter = request.args.get('author_filter', '0')
     venue_filter = request.args.get('venue_filter', '0')
+    search_history = load_search_history()
 
+    print("before building")
     query_graph = filter_query(return_query(mega_graph, query, bm25, corpus), citations_filter, author_filter,
                                venue_filter)
+    print("after building")
+
     authors = get_all_authors(query_graph)
     venues = get_all_venues(query_graph)
     query_dict = query_graph.get_all_item_vertex_mappings()
+
     nodes_data = [{"id": query_dict[key].item.paper_id,
                    "title": query_dict[key].item.title,
                    "weight": calculate_weight(len(query_dict[key].neighbours)),
                    "group": query_dict[key].level,
-                   "authors": query_dict[key].item.authors}
+                   "authors": query_dict[key].item.authors,
+                   "abstract": query_dict[key].item.abstract}
                   for key in query_dict if query_dict[key].visible]
+
     links_data = []
     for paper in query_dict:
         for x in query_dict[paper].item.references:
             if x in query_dict and query_dict[x].visible and query_dict[paper].visible:
                 links_data.append({"source": query_dict[x].item.paper_id,
                                    "target": query_dict[paper].item.paper_id})
+
     return render_template('query.html', nodesData=nodes_data, linksData=links_data, query=query,
                            authors=authors, venues=venues, searchHistory=search_history)
 
 
-@app.route('/fetch_doi', methods=['POST'])
+@main_routes.route('/fetch_doi', methods=['POST'])
 def fetch_doi() -> Union[Response | tuple[str, int]]:
     """
     Return the Response associated with the DOI link for a paper based on the title and author provided by the user.
@@ -110,7 +130,7 @@ def fetch_doi() -> Union[Response | tuple[str, int]]:
         return str(e), 500
 
 
-@app.route('/loading')
+@main_routes.route('/loading')
 def loading() -> str:
     """
     Return a string redirecting the user to the loading page with the title and author of the paper passed as a query,
@@ -119,28 +139,3 @@ def loading() -> str:
     title = request.args.get('title')
     author = request.args.get('author')
     return render_template('loading.html', title=title, author=author)
-
-
-if __name__ == '__main__':
-    # Optional: Uncomment code for testing purposes
-    # import python_ta.contracts
-    #
-    # python_ta.contracts.check_all_contracts()
-    #
-    # import python_ta
-    #
-    # python_ta.check_all(config={
-    #     # the names (strs) of imported modules
-    #     'extra-imports': ['requests', 'flask', 'search', 'utils', 'graph', 'typing', 'calculate_weight'],
-    #     'allowed-io': [],  # the names (strs) of functions that call print/open/input
-    #     'max-line-length': 120
-    # })
-
-    csv_path = '../data/research-papers.csv'
-    mega_graph = load_research_graph(csv_path)
-    corpus = get_corpus(mega_graph)
-    tokenized_corpus = [tokenize(x[1]) for x in corpus]
-    bm25 = BM25(tokenized_corpus)
-    search_history = []
-
-    app.run(debug=True)

@@ -1,4 +1,6 @@
-scholar-search/data
+scholar-search/data/cache/
+scholar-search/data/research-papers.csv
+scholar-search/src/.env
 .DS_Store
 __pycache__/
 *.pyc
